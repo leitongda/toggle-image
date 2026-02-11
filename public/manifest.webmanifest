@@ -1,0 +1,23 @@
+{
+  "name": "图片格式转换与压缩工具",
+  "short_name": "图片工具",
+  "description": "在线图片格式转换与压缩工具 - 纯前端处理，保护隐私",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f9fafb",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

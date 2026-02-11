@@ -91,8 +91,12 @@ class Compressor {
       }
     }
 
+    if (!blob) {
+      throw new Error('Failed to compress image');
+    }
+
     return {
-      blob: blob!,
+      blob,
       width: canvas.width,
       height: canvas.height,
     };

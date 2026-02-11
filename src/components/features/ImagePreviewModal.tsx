@@ -1,9 +1,19 @@
 import { ImageFile, ProcessedImageFormats, ImageFormat, ViewMode } from '@/types';
 import { formatFileSize } from '@/utils/imageLoader';
-import { Button } from '../ui';
+import {
+  Button,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogTitle,
+  ScrollArea,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from '@/components/shadcn/ui';
 import { FORMAT_LABELS } from '@/constants';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { UPLOAD_ICONS } from '@/utils/uploadIcons';
+import { X } from 'lucide-react';
 
 interface ImagePreviewModalProps {
   image: ImageFile;
@@ -16,33 +26,22 @@ const ViewModeSelector: React.FC<{
   current: ViewMode;
   onChange: (mode: ViewMode) => void;
 }> = ({ current, onChange }) => {
-  const modes: Array<{ value: ViewMode; label: string; icon: string }> = [
-    { value: 'single', label: '单图', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>' },
-    { value: 'sideBySide', label: '并排对比', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="8" height="18" rx="2"/><rect x="13" y="3" width="8" height="18" rx="2"/></svg>' },
-    { value: 'slider', label: '滑块对比', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><circle cx="12" cy="12" r="2"/></svg>' },
+  const modes: Array<{ value: ViewMode; label: string }> = [
+    { value: 'single', label: '单图' },
+    { value: 'sideBySide', label: '并排对比' },
+    { value: 'slider', label: '滑块对比' },
   ];
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-500 mr-1">视图模式:</span>
-      {modes.map((mode) => (
-        <button
-          key={mode.value}
-          onClick={() => onChange(mode.value)}
-          className={`
-            flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all
-            ${current === mode.value
-              ? 'bg-blue-500 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }
-          `}
-          title={mode.label}
-        >
-          <span dangerouslySetInnerHTML={{ __html: mode.icon }} />
-          <span className="hidden sm:inline">{mode.label}</span>
-        </button>
-      ))}
-    </div>
+    <Tabs value={current} onValueChange={(value) => onChange(value as ViewMode)} className="w-full md:w-auto">
+      <TabsList className="w-full md:w-auto">
+        {modes.map((mode) => (
+          <TabsTrigger key={mode.value} value={mode.value} className="text-xs sm:text-sm">
+            {mode.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
   );
 };
 
@@ -71,7 +70,7 @@ const SideBySideView: React.FC<{
     : null;
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {/* Original Image */}
       <div className="flex flex-col">
         <div className="bg-blue-50 px-3 py-1.5 rounded-t-lg border-b border-blue-200">
@@ -286,7 +285,7 @@ const SliderCompareView: React.FC<{
       </div>
 
       {/* Info Bar */}
-      <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
+      <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
         <div className="bg-blue-50 px-3 py-2 rounded">
           <span className="text-blue-600">原图格式:</span>
           <span className="ml-1 font-medium text-blue-800">{image.format.toUpperCase()}</span>
@@ -323,7 +322,6 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   const [viewMode, setViewMode] = useState<ViewMode>('single');
   const [selectedFormat, setSelectedFormat] = useState<ImageFormat | 'original'>('original');
   const [zoom, setZoom] = useState(100);
-  const [imageSrc, setImageSrc] = useState(image.originalUrl);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -365,14 +363,6 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedFormat, formats, onClose]);
 
-  useEffect(() => {
-    if (selectedFormat === 'original') {
-      setImageSrc(image.originalUrl);
-    } else if (formats?.[selectedFormat]?.url) {
-      setImageSrc(formats[selectedFormat].url!);
-    }
-  }, [selectedFormat, formats, image.originalUrl]);
-
   const availableFormats: Array<ImageFormat | 'original'> = ['original'];
   if (formats) {
     Object.keys(formats).forEach((format) => {
@@ -392,6 +382,9 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   const compressionRate = selectedFormat !== 'original' && currentSize && image.originalSize
     ? -((image.originalSize - currentSize) / image.originalSize * 100).toFixed(1)
     : null;
+  const imageSrc = selectedFormat === 'original'
+    ? image.originalUrl
+    : formats?.[selectedFormat]?.url || image.originalUrl;
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 25, 200));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 25, 50));
@@ -425,31 +418,25 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent showCloseButton={false} className="max-w-6xl h-[90vh] p-0 gap-0 rounded-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
-          <h3 className="text-lg font-semibold text-gray-900 truncate pr-4" title={image.file.name}>
+        <div className="flex flex-wrap items-center gap-2 p-4 border-b border-border bg-background">
+          <DialogTitle className="text-lg truncate w-full md:w-auto md:flex-1" title={image.file.name}>
             {image.file.name}
-          </h3>
-          <ViewModeSelector current={viewMode} onChange={setViewMode} />
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors ml-4"
-            aria-label="关闭"
-          >
-            {UPLOAD_ICONS.close}
-          </button>
+          </DialogTitle>
+          <div className="flex-1 min-w-0 overflow-x-auto">
+            <ViewModeSelector current={viewMode} onChange={setViewMode} />
+          </div>
+          <DialogClose asChild>
+            <Button variant="ghost" size="icon" className="ml-auto" aria-label="关闭">
+              <X className="size-4" />
+            </Button>
+          </DialogClose>
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-auto p-4 bg-gray-50">
+        <ScrollArea className="flex-1 p-4 bg-muted/20">
           {viewMode === 'single' && (
             <div className="flex items-center justify-center">
               <div
@@ -482,43 +469,42 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
               zoom={zoom}
             />
           )}
-        </div>
+        </ScrollArea>
 
         {/* Format Tabs */}
         {formats && Object.keys(formats).length > 0 && (
-          <div className="px-4 py-2 border-t border-gray-200 bg-white">
+          <div className="px-4 py-2 border-t border-border bg-background">
             <div className="flex items-center gap-3 overflow-x-auto pb-2">
-              <span className="text-xs text-gray-500 whitespace-nowrap">选择格式:</span>
-              <div className="flex gap-2">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">选择格式:</span>
+              <Tabs
+                value={selectedFormat}
+                onValueChange={(next) => setSelectedFormat(next as ImageFormat | 'original')}
+                className="w-full"
+              >
+                <TabsList className="h-auto min-h-9 w-full justify-start overflow-x-auto">
                 {availableFormats.map((format) => {
                   const formatKey = format as string;
                   const hasFormat =
                     format === 'original' || formats[formatKey]?.blob;
 
                   return (
-                    <button
+                    <TabsTrigger
                       key={format}
-                      onClick={() => hasFormat && setSelectedFormat(format as ImageFormat | 'original')}
+                      value={format}
                       disabled={!hasFormat}
-                      className={`
-                        px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap
-                        ${selectedFormat === format
-                          ? 'bg-blue-500 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }
-                        ${!hasFormat ? 'opacity-50 cursor-not-allowed' : ''}
-                      `}
+                      className="px-4 whitespace-nowrap"
                       title={format === 'original' ? '原图' : FORMAT_LABELS[format as ImageFormat]}
                     >
                       {format === 'original' ? '原图' : FORMAT_LABELS[format as ImageFormat]}
-                    </button>
+                    </TabsTrigger>
                   );
                 })}
-              </div>
+                </TabsList>
+              </Tabs>
               {/* Size difference indicator */}
               {selectedFormat !== 'original' && compressionRate && currentSize && (
-                <div className="ml-auto flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-lg">
-                  <span className="text-xs text-gray-600">压缩率:</span>
+                <div className="ml-auto flex items-center gap-2 bg-accent px-3 py-1.5 rounded-lg">
+                  <span className="text-xs text-muted-foreground">压缩率:</span>
                   <span className="text-sm font-bold text-green-600">{compressionRate}%</span>
                 </div>
               )}
@@ -527,25 +513,25 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
         )}
 
         {/* Info & Controls */}
-        <div className="p-4 border-t border-gray-200 bg-white">
+        <div className="p-4 border-t border-border bg-background">
           {/* File Info (only in single view mode) */}
           {viewMode === 'single' && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
               <div>
-                <p className="text-xs text-gray-500 mb-1">尺寸</p>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-xs text-muted-foreground mb-1">尺寸</p>
+                <p className="text-sm font-medium text-foreground">
                   {image.originalWidth} × {image.originalHeight}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">格式</p>
-                <p className="text-sm font-medium text-gray-900 uppercase">
+                <p className="text-xs text-muted-foreground mb-1">格式</p>
+                <p className="text-sm font-medium text-foreground uppercase">
                   {currentFormat}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">文件大小</p>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-xs text-muted-foreground mb-1">文件大小</p>
+                <p className="text-sm font-medium text-foreground">
                   {currentSize ? formatFileSize(currentSize) : '-'}
                 </p>
               </div>
@@ -562,27 +548,27 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 
           {/* Keyboard shortcuts hint */}
           {viewMode === 'single' && (
-            <div className="mb-4 text-xs text-gray-500">
+            <div className="mb-4 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded">←</kbd>
-                <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded">→</kbd>
+                <kbd className="px-1.5 py-0.5 bg-muted border border-border rounded">←</kbd>
+                <kbd className="px-1.5 py-0.5 bg-muted border border-border rounded">→</kbd>
                 切换格式
               </span>
               <span className="mx-2">|</span>
               <span className="inline-flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded">Esc</kbd>
+                <kbd className="px-1.5 py-0.5 bg-muted border border-border rounded">Esc</kbd>
                 关闭
               </span>
             </div>
           )}
 
           {/* Controls */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             {/* Zoom Controls */}
             <div className="flex items-center gap-2">
               <button
                 onClick={handleZoomOut}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
                 aria-label="缩小"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -591,12 +577,12 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
                   <line x1="8" y1="11" x2="14" y2="11" />
                 </svg>
               </button>
-              <span className="text-sm font-medium text-gray-700 min-w-[3rem] text-center">
+              <span className="text-sm font-medium text-muted-foreground min-w-[3rem] text-center">
                 {zoom}%
               </span>
               <button
                 onClick={handleZoomIn}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
                 aria-label="放大"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -608,14 +594,14 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
               </button>
               <button
                 onClick={handleZoomReset}
-                className="px-3 py-1 text-sm hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-3 py-1 text-sm hover:bg-muted rounded-lg transition-colors"
               >
                 重置
               </button>
             </div>
 
             {/* Download Button */}
-            <Button onClick={handleDownload} variant="primary" size="sm">
+            <Button onClick={handleDownload} variant="default" size="sm" className="w-full sm:w-auto">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
@@ -625,7 +611,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };

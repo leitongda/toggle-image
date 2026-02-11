@@ -1,6 +1,6 @@
 import { ImageFile } from '@/types';
 import { formatFileSize } from '@/utils/imageLoader';
-import { Card, Button, Badge } from '../ui';
+import { Card, Button, Badge } from '@/components/shadcn/ui';
 import { UPLOAD_ICONS } from '@/utils/uploadIcons';
 import { useState } from 'react';
 import { ImagePreviewModal } from './ImagePreviewModal';
@@ -24,11 +24,11 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ image, onRemove, onP
       case 'pending':
         return <Badge variant="default">待处理</Badge>;
       case 'processing':
-        return <Badge variant="info">处理中...</Badge>;
+        return <Badge variant="secondary">处理中...</Badge>;
       case 'completed':
-        return <Badge variant="success">完成</Badge>;
+        return <Badge variant="default">完成</Badge>;
       case 'error':
-        return <Badge variant="error">失败</Badge>;
+        return <Badge variant="destructive">失败</Badge>;
     }
   };
 
@@ -40,10 +40,11 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ image, onRemove, onP
   };
 
   const hasMultipleFormats = image.processedFormats && Object.keys(image.processedFormats).length > 1;
+  const processedFormatCount = image.processedFormats ? Object.keys(image.processedFormats).length : 0;
 
   return (
     <>
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden gap-0 py-0">
         <div className="relative">
           <img
             src={image.previewUrl || image.originalUrl}
@@ -63,8 +64,8 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ image, onRemove, onP
           </div>
           {hasMultipleFormats && (
             <div className="absolute bottom-2 left-2">
-              <Badge variant="info">
-                {Object.keys(image.processedFormats!).length} 种格式
+              <Badge variant="secondary">
+                {processedFormatCount} 种格式
               </Badge>
             </div>
           )}
@@ -162,11 +163,11 @@ export const ImagePreviewList: React.FC<ImagePreviewListProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <h3 className="text-lg font-semibold text-gray-900">
           已上传 {images.length} 张图片
         </h3>
-        <Button variant="ghost" size="sm" onClick={onClearAll}>
+        <Button variant="ghost" size="sm" onClick={onClearAll} className="w-full sm:w-auto">
           清空全部
         </Button>
       </div>

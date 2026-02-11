@@ -1,4 +1,4 @@
-import { Button } from '../ui';
+import { Button } from '@/components/shadcn/ui';
 import { downloadService } from '@/services/downloadService';
 import { formatConverter } from '@/services/formatConverter';
 import { ImageFile } from '@/types';
@@ -18,7 +18,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ images, disabled
 
   if (completedImages.length === 0) {
     return (
-      <Button disabled variant="primary" className="w-full">
+      <Button disabled variant="default" className="w-full">
         没有可下载的图片
       </Button>
     );
@@ -104,14 +104,14 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ images, disabled
     <div className="space-y-2">
       {/* Download mode selector (only show if we have multi-format images) */}
       {hasMultiFormatImages && (
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <button
             type="button"
             onClick={() => setDownloadMode('byFormat')}
             className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${
               downloadMode === 'byFormat'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-accent'
             }`}
           >
             按格式分文件夹
@@ -121,8 +121,8 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ images, disabled
             onClick={() => setDownloadMode('flat')}
             className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${
               downloadMode === 'flat'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-accent'
             }`}
           >
             平铺下载
@@ -134,7 +134,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ images, disabled
         onClick={handleDownload}
         disabled={disabled || isDownloading}
         isLoading={isDownloading}
-        variant="primary"
+        variant="default"
         className="w-full"
         size="lg"
       >
@@ -166,7 +166,7 @@ export const DownloadIndividualButton: React.FC<DownloadIndividualButtonProps> =
     try {
       let blob: Blob;
       let extension: string;
-      let baseName = image.file.name.replace(/\.[^/.]+$/, '');
+      const baseName = image.file.name.replace(/\.[^/.]+$/, '');
 
       // If we have multiple formats, download all as ZIP
       if (image.processedFormats && Object.keys(image.processedFormats).length > 1) {
@@ -215,6 +215,7 @@ export const DownloadIndividualButton: React.FC<DownloadIndividualButtonProps> =
   };
 
   const hasMultipleFormats = image.processedFormats && Object.keys(image.processedFormats).length > 1;
+  const processedFormatCount = image.processedFormats ? Object.keys(image.processedFormats).length : 0;
 
   return (
     <Button
@@ -228,7 +229,7 @@ export const DownloadIndividualButton: React.FC<DownloadIndividualButtonProps> =
       {isDownloading
         ? '下载中...'
         : hasMultipleFormats
-        ? `下载全部 (${Object.keys(image.processedFormats!).length} 格式)`
+        ? `下载全部 (${processedFormatCount} 格式)`
         : '下载'}
     </Button>
   );

@@ -1,4 +1,11 @@
-import { Select } from '../ui';
+import {
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/ui';
 import { formatConverter } from '@/services/formatConverter';
 import { FORMAT_LABELS } from '@/constants';
 import { ImageFormat } from '@/types';
@@ -16,22 +23,23 @@ export const FormatSelector: React.FC<FormatSelectorProps> = ({
 }) => {
   const supportedFormats = formatConverter.getSupportedFormats();
   const availableFormats = ['original', ...supportedFormats] as ImageFormat[];
-
-  const options = availableFormats.map((format) => {
-    const isSupported = format === 'original' || formatConverter.isFormatSupportedInBrowser(format);
-    return {
-      value: format,
-      label: FORMAT_LABELS[format],
-      disabled: !isSupported,
-    };
-  });
+  const selectId = 'format-selector';
 
   return (
-    <Select
-      label={label}
-      value={value}
-      onChange={(e) => onChange(e.target.value as ImageFormat)}
-      options={options}
-    />
+    <div className="space-y-2">
+      <Label htmlFor={selectId}>{label}</Label>
+      <Select value={value} onValueChange={(next) => onChange(next as ImageFormat)}>
+        <SelectTrigger id={selectId}>
+          <SelectValue placeholder="请选择输出格式" />
+        </SelectTrigger>
+        <SelectContent>
+          {availableFormats.map((format) => (
+            <SelectItem key={format} value={format}>
+              {FORMAT_LABELS[format]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 };

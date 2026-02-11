@@ -1,4 +1,4 @@
-import { Slider, Input, Button, Card, CardHeader, CardTitle, CardContent } from '../ui';
+import { Slider, Input, Button, Card, CardHeader, CardTitle, CardContent, Label } from '@/components/shadcn/ui';
 import { CompressionSettings as CompressionSettingsType, CompressionPreset } from '@/types';
 import { COMPRESSION_PRESETS, MAX_DIMENSION_DEFAULT } from '@/constants';
 import { MultiFormatSelector } from './MultiFormatSelector';
@@ -37,14 +37,14 @@ export const CompressionSettings: React.FC<CompressionSettingsProps> = ({ settin
 
         {/* Presets */}
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">
+          <Label className="mb-2 block">
             快速预设
-          </label>
-          <div className="flex gap-2">
+          </Label>
+          <div className="flex flex-wrap gap-2">
             {COMPRESSION_PRESETS.map((preset) => (
               <Button
                 key={preset.name}
-                variant={settings.quality === preset.quality ? 'primary' : 'outline'}
+                variant={settings.quality === preset.quality ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handlePresetClick(preset)}
                 title={preset.description}
@@ -58,56 +58,74 @@ export const CompressionSettings: React.FC<CompressionSettingsProps> = ({ settin
         </div>
 
         {/* Quality Slider */}
-        <Slider
-          label="图片质量"
-          value={settings.quality}
-          onChange={(quality) => onChange({ quality })}
-          min={1}
-          max={100}
-          step={1}
-        />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label>图片质量</Label>
+            <span className="text-sm text-muted-foreground">{settings.quality}%</span>
+          </div>
+          <Slider
+            value={[settings.quality]}
+            onValueChange={(value) => onChange({ quality: value[0] ?? settings.quality })}
+            min={1}
+            max={100}
+            step={1}
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>1%</span>
+            <span>100%</span>
+          </div>
+        </div>
 
         {/* Max Size */}
-        <Input
-          type="number"
-          label="目标大小 (MB) - 可选"
-          placeholder="不限制"
-          value={settings.maxSizeMB || ''}
-          onChange={(e) =>
-            onChange({
-              maxSizeMB: e.target.value ? parseFloat(e.target.value) : undefined,
-            })
-          }
-          min={0.01}
-          step={0.01}
-        />
+        <div className="space-y-2">
+          <Label htmlFor="max-size">目标大小 (MB) - 可选</Label>
+          <Input
+            id="max-size"
+            type="number"
+            placeholder="不限制"
+            value={settings.maxSizeMB || ''}
+            onChange={(e) =>
+              onChange({
+                maxSizeMB: e.target.value ? parseFloat(e.target.value) : undefined,
+              })
+            }
+            min={0.01}
+            step={0.01}
+          />
+        </div>
 
         {/* Max Dimensions */}
         <div className="grid grid-cols-2 gap-4">
-          <Input
-            type="number"
-            label="最大宽度"
-            placeholder={MAX_DIMENSION_DEFAULT.toString()}
-            value={settings.maxWidth || ''}
-            onChange={(e) =>
-              onChange({
-                maxWidth: e.target.value ? parseInt(e.target.value) : undefined,
-              })
-            }
-            min={1}
-          />
-          <Input
-            type="number"
-            label="最大高度"
-            placeholder={MAX_DIMENSION_DEFAULT.toString()}
-            value={settings.maxHeight || ''}
-            onChange={(e) =>
-              onChange({
-                maxHeight: e.target.value ? parseInt(e.target.value) : undefined,
-              })
-            }
-            min={1}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="max-width">最大宽度</Label>
+            <Input
+              id="max-width"
+              type="number"
+              placeholder={MAX_DIMENSION_DEFAULT.toString()}
+              value={settings.maxWidth || ''}
+              onChange={(e) =>
+                onChange({
+                  maxWidth: e.target.value ? parseInt(e.target.value) : undefined,
+                })
+              }
+              min={1}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="max-height">最大高度</Label>
+            <Input
+              id="max-height"
+              type="number"
+              placeholder={MAX_DIMENSION_DEFAULT.toString()}
+              value={settings.maxHeight || ''}
+              onChange={(e) =>
+                onChange({
+                  maxHeight: e.target.value ? parseInt(e.target.value) : undefined,
+                })
+              }
+              min={1}
+            />
+          </div>
         </div>
       </CardContent>
     </Card>

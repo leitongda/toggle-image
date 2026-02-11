@@ -101,8 +101,12 @@ class ImageProcessor {
     // Get final blob at the found quality
     blob = await this.canvasToBlob(canvas, mimeType, quality * 100);
 
+    if (!blob) {
+      throw new Error('Failed to process image');
+    }
+
     return {
-      blob: blob!,
+      blob,
       width: canvas.width,
       height: canvas.height,
     };

@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { ImageFormat } from '@/types';
-import { FORMAT_LABELS, FORMAT_DESCRIPTIONS } from '@/constants';
+import { FORMAT_LABELS } from '@/constants';
 import { formatConverter } from '@/services/formatConverter';
+import { Button, Checkbox, Label } from '@/components/shadcn/ui';
 
 interface MultiFormatSelectorProps {
   values: ImageFormat[];
@@ -22,6 +24,19 @@ export const MultiFormatSelector: React.FC<MultiFormatSelectorProps> = ({
   onChange,
   label = '输出格式（可多选）',
 }) => {
+  const commonFormats = COMMON_FORMATS_LIST.filter((format) => isFormatSupported(format));
+  const additionalFormats = ADDITIONAL_FORMATS.filter((format) => isFormatSupported(format));
+
+  useEffect(() => {
+    const sanitized = values.filter((format) => format === 'original' || isFormatSupported(format));
+
+    if (sanitized.length === values.length) {
+      return;
+    }
+
+    onChange(sanitized.length > 0 ? sanitized : ['original']);
+  }, [values, onChange]);
+
   const handleFormatToggle = (format: ImageFormat) => {
     if (format === 'original') {
       // If original is selected, clear all other formats
@@ -47,104 +62,113 @@ export const MultiFormatSelector: React.FC<MultiFormatSelectorProps> = ({
   };
 
   const handleCommonFormatsSelect = () => {
-    onChange([...COMMON_FORMATS_LIST]);
+    onChange(commonFormats.length > 0 ? [...commonFormats] : ['original']);
   };
 
-  const renderCheckbox = (format: ImageFormat, description?: string) => {
-    const isSupported = isFormatSupported(format);
+  const renderCheckbox = (format: ImageFormat) => {
+    const isChecked = values.includes(format);
+    const checkboxId = `format-${format}`;
+
+    return (
+      <Label
+        htmlFor={checkboxId}
+        key={format}
+        className={`
+          flex items-start p-3 rounded-lg border cursor-pointer transition-all
+          ${isChecked
+            ? 'border-ring bg-accent'
+            : 'border-border hover:border-ring bg-card'
+          }
+        `}
+      >
+        <Checkbox
+          id={checkboxId}
+          className="mt-0.5"
+          checked={isChecked}
+          onCheckedChange={() => handleFormatToggle(format)}
+        />
+        <span className="ml-3 flex-1 font-medium text-foreground">
+          {FORMAT_LABELS[format]}
+        </span>
+      </Label>
+    );
+  };
+
+  const renderCommonButton = (format: ImageFormat) => {
     const isChecked = values.includes(format);
 
     return (
-      <label
+      <Button
         key={format}
-        className={`
-          flex items-start p-3 rounded-lg border-2 cursor-pointer transition-all
-          ${isChecked
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-200 hover:border-gray-300 bg-white'
-          }
-          ${!isSupported ? 'opacity-50 cursor-not-allowed' : ''}
-        `}
+        type="button"
+        size="sm"
+        variant={isChecked ? 'default' : 'outline'}
+        onClick={() => handleFormatToggle(format)}
+        className="h-8"
       >
-        <input
-          type="checkbox"
-          className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-          checked={isChecked}
-          onChange={() => isSupported && handleFormatToggle(format)}
-          disabled={!isSupported}
-        />
-        <div className="ml-3 flex-1">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-gray-900">
-              {FORMAT_LABELS[format]}
-            </span>
-            {!isSupported && (
-              <span className="text-xs text-gray-500">浏览器不支持</span>
-            )}
-          </div>
-          {description && (
-            <span className="text-sm text-gray-500">{description}</span>
-          )}
-        </div>
-      </label>
+        {FORMAT_LABELS[format]}
+      </Button>
     );
   };
 
   return (
     <div>
-      <label className="text-sm font-medium text-gray-700 mb-2 block">
+      <Label className="mb-2 block">
         {label}
-      </label>
+      </Label>
 
       {/* Quick select buttons */}
-      <div className="mb-3 flex gap-2">
-        <button
+      <div className="mb-3 flex flex-wrap gap-2">
+        <Button
           type="button"
+          size="sm"
+          variant="secondary"
           onClick={handleCommonFormatsSelect}
-          className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
         >
           常用格式 (JPEG/PNG/WebP)
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          size="sm"
+          variant="secondary"
           onClick={() => onChange(['original'])}
-          className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
         >
           原格式
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          size="sm"
+          variant="secondary"
           onClick={() => onChange([])}
-          className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
         >
           清空
-        </button>
+        </Button>
       </div>
 
       {/* Common formats */}
       <div className="mb-3 space-y-2">
-        <p className="text-xs font-medium text-gray-500 uppercase">常用格式</p>
-        {COMMON_FORMATS_LIST.map((format) =>
-          renderCheckbox(format, FORMAT_DESCRIPTIONS[format])
-        )}
+        <p className="text-xs font-medium text-muted-foreground uppercase">常用格式</p>
+        <div className="flex flex-wrap gap-2">
+          {commonFormats.map((format) => renderCommonButton(format))}
+        </div>
       </div>
 
       {/* Additional formats */}
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-gray-500 uppercase">其他格式</p>
-        {ADDITIONAL_FORMATS.map((format) =>
-          renderCheckbox(format, FORMAT_DESCRIPTIONS[format])
-        )}
-      </div>
+      {additionalFormats.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase">其他格式</p>
+          {additionalFormats.map((format) => renderCheckbox(format))}
+        </div>
+      )}
 
       {/* Original format option */}
-      <div className="mt-3 pt-3 border-t border-gray-200">
-        {renderCheckbox('original', '保持原始格式')}
+      <div className="mt-3 pt-3 border-t border-border">
+        {renderCheckbox('original')}
       </div>
 
       {/* Selected count */}
       {values.length > 0 && (
-        <p className="mt-3 text-sm text-gray-600">
+        <p className="mt-3 text-sm text-muted-foreground">
           已选择 {values.length} 种格式
         </p>
       )}

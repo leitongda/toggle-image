@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useImageStore } from './stores/imageStore';
 import { Header, Footer } from './components/layout';
 import {
@@ -6,7 +7,12 @@ import {
   CompressionSettings,
   DownloadButton,
 } from './components/features';
-import { Button } from './components/ui';
+import { Button, Toaster } from '@/components/shadcn/ui';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
 
 function App() {
   const {
@@ -20,9 +26,44 @@ function App() {
     processImage,
     processAllImages,
   } = useImageStore();
+  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event as BeforeInstallPromptEvent);
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPromptEvent(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
 
   const handleProcessAll = async () => {
     await processAllImages();
+  };
+
+  const handleInstallApp = async () => {
+    if (!installPromptEvent) {
+      return;
+    }
+
+    await installPromptEvent.prompt();
+    const choiceResult = await installPromptEvent.userChoice;
+
+    if (choiceResult.outcome !== 'accepted') {
+      return;
+    }
+
+    setInstallPromptEvent(null);
   };
 
   const hasImages = images.length > 0;
@@ -30,8 +71,8 @@ function App() {
   const hasPendingImages = images.some((img) => img.status === 'pending');
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header canInstall={Boolean(installPromptEvent)} onInstall={handleInstallApp} />
 
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -57,12 +98,12 @@ function App() {
                 {/* Add More Button */}
                 <div className="mt-6">
                   <label htmlFor="add-more" className="cursor-pointer">
-                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-primary-400 transition-colors">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 text-gray-400">
+                    <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-ring transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 text-muted-foreground">
                         <line x1="12" y1="5" x2="12" y2="19" />
                         <line x1="5" y1="12" x2="19" y2="12" />
                       </svg>
-                      <span className="text-sm text-gray-600">添加更多图片</span>
+                      <span className="text-sm text-muted-foreground">添加更多图片</span>
                     </div>
                   </label>
                   <input
@@ -96,7 +137,7 @@ function App() {
                 onClick={handleProcessAll}
                 disabled={isProcessing}
                 isLoading={isProcessing}
-                variant="primary"
+                variant="default"
                 className="w-full"
                 size="lg"
               >
@@ -111,9 +152,9 @@ function App() {
 
             {/* Info Card */}
             {hasImages && (
-              <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
-                <h4 className="font-medium text-blue-900 mb-2">提示</h4>
-                <ul className="text-sm text-blue-700 space-y-1">
+              <div className="bg-muted/40 rounded-xl border border-border p-4">
+                <h4 className="font-medium text-foreground mb-2">提示</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• 支持多种格式同时导出（JPEG、PNG、WebP、AVIF等）</li>
                   <li>• 点击图片卡片可查看大图和各格式详情</li>
                   <li>• 点击"处理所有图片"批量处理</li>
@@ -126,6 +167,7 @@ function App() {
       </main>
 
       <Footer />
+      <Toaster />
     </div>
   );
 }
